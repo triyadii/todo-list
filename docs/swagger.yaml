@@ -1,0 +1,948 @@
+basePath: /
+definitions:
+  models.ChatMessage:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      role:
+        $ref: '#/definitions/models.ChatRole'
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        type: string
+    type: object
+  models.ChatRole:
+    enum:
+    - user
+    - assistant
+    - system
+    type: string
+    x-enum-varnames:
+    - ChatRoleUser
+    - ChatRoleAssistant
+    - ChatRoleSystem
+  models.Reminder:
+    properties:
+      ai_message:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      is_sent:
+        type: boolean
+      remind_at:
+        type: string
+      sent_at:
+        type: string
+      task:
+        $ref: '#/definitions/models.Task'
+      task_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Task:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      due_date:
+        description: 'Format: YYYY-MM-DD'
+        type: string
+      end_time:
+        description: 'Format: HH:MM:SS'
+        type: string
+      id:
+        type: string
+      priority:
+        $ref: '#/definitions/models.TaskPriority'
+      reminders:
+        items:
+          $ref: '#/definitions/models.Reminder'
+        type: array
+      start_time:
+        description: 'Format: HH:MM:SS'
+        type: string
+      status:
+        $ref: '#/definitions/models.TaskStatus'
+      title:
+        type: string
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        type: string
+    type: object
+  models.TaskPriority:
+    enum:
+    - low
+    - medium
+    - high
+    type: string
+    x-enum-varnames:
+    - TaskPriorityLow
+    - TaskPriorityMedium
+    - TaskPriorityHigh
+  models.TaskStatus:
+    enum:
+    - pending
+    - in_progress
+    - completed
+    - cancelled
+    type: string
+    x-enum-varnames:
+    - TaskStatusPending
+    - TaskStatusInProgress
+    - TaskStatusCompleted
+    - TaskStatusCancelled
+  models.User:
+    properties:
+      chat_messages:
+        items:
+          $ref: '#/definitions/models.ChatMessage'
+        type: array
+      created_at:
+        type: string
+      email:
+        type: string
+      fcm_token:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      tasks:
+        items:
+          $ref: '#/definitions/models.Task'
+        type: array
+      timezone:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  service.AuthResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  service.CreateReminderRequest:
+    properties:
+      ai_message:
+        type: string
+      remind_at:
+        type: string
+      task_id:
+        type: string
+    type: object
+  service.CreateTaskRequest:
+    properties:
+      description:
+        type: string
+      due_date:
+        description: 'Format: YYYY-MM-DD'
+        type: string
+      end_time:
+        description: 'Format: HH:MM:SS'
+        type: string
+      priority:
+        $ref: '#/definitions/models.TaskPriority'
+      start_time:
+        description: 'Format: HH:MM:SS'
+        type: string
+      status:
+        $ref: '#/definitions/models.TaskStatus'
+      title:
+        type: string
+    type: object
+  service.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      fcm_token:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      timezone:
+        type: string
+    type: object
+  service.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  service.RegisterRequest:
+    properties:
+      email:
+        type: string
+      fcm_token:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      timezone:
+        type: string
+    type: object
+  service.SendMessageRequest:
+    properties:
+      content:
+        type: string
+      role:
+        $ref: '#/definitions/models.ChatRole'
+    type: object
+  service.UpdateProfileRequest:
+    properties:
+      fcm_token:
+        type: string
+      name:
+        type: string
+      timezone:
+        type: string
+    type: object
+  service.UpdateTaskRequest:
+    properties:
+      description:
+        type: string
+      due_date:
+        type: string
+      end_time:
+        type: string
+      priority:
+        $ref: '#/definitions/models.TaskPriority'
+      start_time:
+        type: string
+      status:
+        $ref: '#/definitions/models.TaskStatus'
+      title:
+        type: string
+    type: object
+  utils.APIResponse:
+    properties:
+      data: {}
+      errors: {}
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@todolist.local
+    name: Dii Support
+  description: Backend RESTful API untuk aplikasi Todo List cerdas berbasis Go Fiber,
+    GORM, dan PostgreSQL.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: TodoList Backend AI Assistant API
+  version: "1.0"
+paths:
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with email and password, returning JWT token
+      parameters:
+      - description: Login Credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/service.AuthResponse'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Invalid email or password
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Login user
+      tags:
+      - Auth
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register new user with name, email, password, timezone, and optional
+        FCM token
+      parameters:
+      - description: User Registration Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/service.AuthResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Register a new user
+      tags:
+      - Auth
+  /api/v1/chat/messages:
+    delete:
+      consumes:
+      - application/json
+      description: Delete all chat history messages for current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Chat history cleared successfully
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Clear chat history
+      tags:
+      - Chat & AI
+    get:
+      consumes:
+      - application/json
+      description: Retrieve chat history conversation for current user (used to feed
+        AI memory context)
+      parameters:
+      - description: 'Number of recent messages to return (default: 50)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Chat history retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.ChatMessage'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get chat history
+      tags:
+      - Chat & AI
+    post:
+      consumes:
+      - application/json
+      description: Save a chat conversation message for user, assistant, or system
+        to preserve context memory
+      parameters:
+      - description: Chat Message Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Message stored successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ChatMessage'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Store a chat message
+      tags:
+      - Chat & AI
+  /api/v1/reminders:
+    post:
+      consumes:
+      - application/json
+      description: Schedule a reminder execution time with optional AI personalized
+        message
+      parameters:
+      - description: Reminder Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateReminderRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Reminder scheduled successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Reminder'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a reminder for a task
+      tags:
+      - Reminders
+  /api/v1/reminders/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a reminder by its UUID
+      parameters:
+      - description: Reminder UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Reminder deleted successfully
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Invalid reminder ID
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a reminder
+      tags:
+      - Reminders
+  /api/v1/tasks:
+    get:
+      consumes:
+      - application/json
+      description: Get tasks of logged-in user with optional filters by status, priority,
+        or due_date
+      parameters:
+      - description: Filter by status (pending, in_progress, completed, cancelled)
+        in: query
+        name: status
+        type: string
+      - description: Filter by priority (low, medium, high)
+        in: query
+        name: priority
+        type: string
+      - description: Filter by due date (YYYY-MM-DD)
+        in: query
+        name: due_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tasks retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Task'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all tasks
+      tags:
+      - Tasks
+    post:
+      consumes:
+      - application/json
+      description: Create a new todo task/activity with due date, time, status, and
+        priority
+      parameters:
+      - description: Task Creation Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Task created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Task'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new task
+      tags:
+      - Tasks
+  /api/v1/tasks/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a task by ID (reminders associated will also be deleted
+        via cascade)
+      parameters:
+      - description: Task UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task deleted successfully
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Invalid task ID
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a task
+      tags:
+      - Tasks
+    get:
+      consumes:
+      - application/json
+      description: Retrieve details of a specific task including its reminders
+      parameters:
+      - description: Task UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Task'
+              type: object
+        "400":
+          description: Invalid task ID
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "404":
+          description: Task not found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get task by ID
+      tags:
+      - Tasks
+    put:
+      consumes:
+      - application/json
+      description: Update fields of an existing task
+      parameters:
+      - description: Task UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Task Update Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Task'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a task
+      tags:
+      - Tasks
+  /api/v1/tasks/{taskId}/reminders:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all reminders created for a specific task
+      parameters:
+      - description: Task UUID
+        in: path
+        name: taskId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Reminders retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Reminder'
+                  type: array
+              type: object
+        "400":
+          description: Invalid task ID
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get reminders of a task
+      tags:
+      - Reminders
+  /api/v1/user/profile:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve logged-in user profile data
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - User
+    put:
+      consumes:
+      - application/json
+      description: Update user profile details such as name, timezone, or FCM token
+      parameters:
+      - description: Update Profile Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user profile
+      tags:
+      - User
+  /api/v1/users:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve list of all registered users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.User'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all users
+      tags:
+      - User Management
+    post:
+      consumes:
+      - application/json
+      description: Create a new user with name, email, password, timezone, and optional
+        FCM token
+      parameters:
+      - description: New User Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Add / Create a new user
+      tags:
+      - User Management
+  /api/v1/users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove user by UUID (associated tasks, reminders, and chat messages
+        will be cascade deleted)
+      parameters:
+      - description: User UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User deleted successfully
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Invalid user ID
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a user
+      tags:
+      - User Management
+    get:
+      consumes:
+      - application/json
+      description: Retrieve single user details by UUID
+      parameters:
+      - description: User UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user by ID
+      tags:
+      - User Management
+securityDefinitions:
+  BearerAuth:
+    description: 'Format: "Bearer {token}". Masukkan token JWT yang didapat dari endpoint
+      login.'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

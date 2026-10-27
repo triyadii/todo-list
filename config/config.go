@@ -1,0 +1,62 @@
+package config
+
+import (
+	"log"
+	"os"
+
+	"github.com/joho/godotenv"
+)
+
+type Config struct {
+	AppPort     string
+	AppEnv      string
+	DBHost      string
+	DBPort      string
+	DBUser      string
+	DBPassword  string
+	DBName      string
+	DBSSLMode   string
+	DBTimezone  string
+	JWTSecret   string
+	JWTExpireHr string
+}
+
+var AppConfig *Config
+
+func LoadConfig() *Config {
+	envFiles := []string{".env", "../.env", "../../.env"}
+	loaded := false
+	for _, f := range envFiles {
+		if err := godotenv.Load(f); err == nil {
+			log.Printf("[INFO] Loaded environment from %s\n", f)
+			loaded = true
+			break
+		}
+	}
+	if !loaded {
+		log.Println("[INFO] No .env file found, using system environment variables")
+	}
+
+	AppConfig = &Config{
+		AppPort:     getEnv("APP_PORT", "8080"),
+		AppEnv:      getEnv("APP_ENV", "development"),
+		DBHost:      getEnv("DB_HOST", "localhost"),
+		DBPort:      getEnv("DB_PORT", "5432"),
+		DBUser:      getEnv("DB_USER", "postgres"),
+		DBPassword:  getEnv("DB_PASSWORD", "postgres"),
+		DBName:      getEnv("DB_NAME", "todolist_db"),
+		DBSSLMode:   getEnv("DB_SSLMODE", "disable"),
+		DBTimezone:  getEnv("DB_TIMEZONE", "Asia/Jakarta"),
+		JWTSecret:   getEnv("JWT_SECRET", "super-secret-todolist-jwt-key"),
+		JWTExpireHr: getEnv("JWT_EXPIRE_HOURS", "72"),
+	}
+
+	return AppConfig
+}
+
+func getEnv(key, fallback string) string {
+	if val, exists := os.LookupEnv(key); exists && val != "" {
+		return val
+	}
+	return fallback
+}

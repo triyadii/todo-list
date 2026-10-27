@@ -1,0 +1,17 @@
+# Environment variables
+.env
+.env.local
+
+# Binaries and build artifacts
+api
+todolist-api
+/tmp/
+build-errors.log
+*.exe
+*.test
+*.out
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/

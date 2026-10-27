@@ -1,0 +1,24 @@
+# Version control
+.git
+.gitignore
+
+# Air live-reload temporary files
+tmp/
+build-errors.log
+.air.toml
+
+# Local environment secrets
+.env
+.env.local
+
+# Compiled binaries
+api
+todolist-api
+*.exe
+*.test
+*.out
+
+# IDE and Editor
+.idea/
+.vscode/
+*.swp

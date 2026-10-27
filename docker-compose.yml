@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  todolist-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: todolist_api
+    restart: unless-stopped
+    env_file:
+      - .env
+
+    # ============================================================================
+    # OPSI A (Sangat Direkomendasikan di Linux):
+    # Menggunakan network_mode: "host".
+    # Container akan berbagi network namespace dengan host secara langsung, sehingga
+    # container dapat mengakses PostgreSQL di host via 127.0.0.1:5432 persis seperti
+    # aplikasi lokal tanpa perlu membuka konfigurasi firewall atau pg_hba.conf host.
+    # Port 8080 otomatis terbuka di host.
+    # ============================================================================
+    network_mode: "host"
+
+    # ============================================================================
+    # OPSI B (Jika Anda ingin menggunakan port forwarding standar Docker Bridge):
+    # Nonaktifkan "network_mode: host" di atas, lalu aktifkan baris di bawah:
+    # ports:
+    #   - "8080:8080"
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+    # environment:
+    #   - DB_HOST=host.docker.internal
+    # ============================================================================
