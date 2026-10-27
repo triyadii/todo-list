@@ -14,8 +14,12 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:8080",
-    "basePath": "/",
+    "host": "mdt-solution.site",
+    "basePath": "/todo-list",
+    "schemes": [
+        "https",
+        "http"
+    ],
     "paths": {
         "/api/v1/auth/login": {
             "post": {

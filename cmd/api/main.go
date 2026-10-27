@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"todo-backend/config"
-	_ "todo-backend/docs"
+	"todo-backend/docs"
 	"todo-backend/internal/handler"
 	"todo-backend/internal/repository"
 	"todo-backend/internal/routes"
@@ -32,8 +32,9 @@ import (
 // @license.name    Apache 2.0
 // @license.url     http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host      localhost:8080
-// @BasePath  /
+// @host      mdt-solution.site
+// @BasePath  /todo-list
+// @schemes   https http
 
 // @securityDefinitions.apikey BearerAuth
 // @in header
@@ -43,6 +44,13 @@ import (
 func main() {
 	// 1. Load Configurations
 	cfg := config.LoadConfig()
+
+	// Configure Swagger metadata dynamically from config/.env
+	docs.SwaggerInfo.Host = cfg.SwaggerHost
+	docs.SwaggerInfo.BasePath = cfg.SwaggerBasePath
+	if len(cfg.SwaggerSchemes) > 0 {
+		docs.SwaggerInfo.Schemes = cfg.SwaggerSchemes
+	}
 
 	// 2. Initialize Database and Auto-Migrate Models
 	db := config.ConnectDB(cfg)
@@ -120,6 +128,6 @@ func main() {
 	log.Printf("[INFO] Server starting on port %s (env: %s)...\n", cfg.AppPort, cfg.AppEnv)
 	log.Printf("[INFO] Swagger documentation available at http://localhost:%s/swagger/\n", cfg.AppPort)
 	if err := app.Listen(addr); err != nil {
-		log.Printf("[INFO] Server stopped: %v\n", err)
+		log.Fatalf("[FATAL] Server failed to start: %v\n", err)
 	}
 }

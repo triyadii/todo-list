@@ -20,6 +20,20 @@ func SetupRoutes(app *fiber.App, cfg *RouterConfig) {
 	// Swagger Documentation UI
 	app.Get("/swagger/*", swagger.HandlerDefault)
 
+	// Root endpoint
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"status":  "ok",
+			"message": "TodoList Backend AI Assistant API is running",
+			"version": "1.0",
+			"endpoints": fiber.Map{
+				"health":  "health",
+				"swagger": "swagger/index.html",
+				"api":     "api/v1",
+			},
+		})
+	})
+
 	// Health check
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
