@@ -3,8 +3,8 @@
 .env.local
 
 # Binaries and build artifacts
-api
-todolist-api
+/api
+/todolist-api
 /tmp/
 build-errors.log
 *.exe

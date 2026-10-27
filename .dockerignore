@@ -12,8 +12,8 @@ build-errors.log
 .env.local
 
 # Compiled binaries
-api
-todolist-api
+/api
+/todolist-api
 *.exe
 *.test
 *.out
