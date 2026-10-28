@@ -19,14 +19,14 @@ func NewChatHandler(chatService service.ChatService) *ChatHandler {
 }
 
 // SendMessage godoc
-// @Summary      Store a chat message
-// @Description  Save a chat conversation message for user, assistant, or system to preserve context memory
+// @Summary      Send message to AI assistant
+// @Description  Send a chat message to Groq AI Assistant. The AI automatically processes task or reminder actions and replies back.
 // @Tags         Chat & AI
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
 // @Param        request body service.SendMessageRequest true "Chat Message Data"
-// @Success      201  {object}  utils.APIResponse{data=models.ChatMessage} "Message stored successfully"
+// @Success      201  {object}  utils.APIResponse{data=service.ChatResponse} "Message processed with AI successfully"
 // @Failure      400  {object}  utils.APIResponse "Bad Request"
 // @Failure      401  {object}  utils.APIResponse "Unauthorized"
 // @Router       /api/v1/chat/messages [post]
@@ -41,12 +41,12 @@ func (h *ChatHandler) SendMessage(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
-	msg, err := h.chatService.SendMessage(userID, &req)
+	resp, err := h.chatService.SendMessage(userID, &req)
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, err.Error(), nil)
 	}
 
-	return utils.SuccessResponse(c, fiber.StatusCreated, "Message stored successfully", msg)
+	return utils.SuccessResponse(c, fiber.StatusCreated, "Message processed successfully", resp)
 }
 
 // GetHistory godoc

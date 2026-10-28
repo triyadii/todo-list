@@ -13,6 +13,7 @@ type TaskService interface {
 	CreateTask(userID uuid.UUID, req *CreateTaskRequest) (*models.Task, error)
 	GetTasks(userID uuid.UUID, status, priority, dueDate string) ([]models.Task, error)
 	GetTaskByID(userID, taskID uuid.UUID) (*models.Task, error)
+	FindTaskByKeywordOrID(userID uuid.UUID, idStr, keyword string) (*models.Task, error)
 	UpdateTask(userID, taskID uuid.UUID, req *UpdateTaskRequest) (*models.Task, error)
 	DeleteTask(userID, taskID uuid.UUID) error
 }
@@ -77,6 +78,18 @@ func (s *taskService) GetTasks(userID uuid.UUID, status, priority, dueDate strin
 
 func (s *taskService) GetTaskByID(userID, taskID uuid.UUID) (*models.Task, error) {
 	return s.taskRepo.FindByID(taskID, userID)
+}
+
+func (s *taskService) FindTaskByKeywordOrID(userID uuid.UUID, idStr, keyword string) (*models.Task, error) {
+	if idStr != "" {
+		if id, err := uuid.Parse(idStr); err == nil {
+			return s.taskRepo.FindByID(id, userID)
+		}
+	}
+	if keyword != "" {
+		return s.taskRepo.FindByTitleKeyword(userID, keyword)
+	}
+	return nil, errors.New("neither id nor keyword provided")
 }
 
 func (s *taskService) UpdateTask(userID, taskID uuid.UUID, req *UpdateTaskRequest) (*models.Task, error) {

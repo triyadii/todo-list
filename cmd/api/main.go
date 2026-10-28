@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -14,6 +15,8 @@ import (
 	"todo-backend/internal/repository"
 	"todo-backend/internal/routes"
 	"todo-backend/internal/service"
+	"todo-backend/internal/worker"
+	"todo-backend/pkg/groq"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -66,7 +69,8 @@ func main() {
 	userSvc := service.NewUserService(userRepo)
 	taskSvc := service.NewTaskService(taskRepo)
 	reminderSvc := service.NewReminderService(reminderRepo, taskRepo)
-	chatSvc := service.NewChatService(chatRepo)
+	groqClient := groq.NewClient(cfg.GroqAPIKey, cfg.GroqModel)
+	chatSvc := service.NewChatService(chatRepo, taskSvc, reminderSvc, groqClient, cfg.DBTimezone)
 
 	// 5. Initialize Handlers
 	authHandler := handler.NewAuthHandler(authSvc)
@@ -113,17 +117,23 @@ func main() {
 		ChatHandler:     chatHandler,
 	})
 
-	// 8. Graceful Shutdown listener
+	// 8. Start Background Reminder Worker Goroutine
+	workerCtx, cancelWorker := context.WithCancel(context.Background())
+	reminderWorker := worker.NewReminderWorker(reminderSvc, 15*time.Second)
+	go reminderWorker.Start(workerCtx)
+
+	// 9. Graceful Shutdown listener
 	shutdownChan := make(chan os.Signal, 1)
 	signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		<-shutdownChan
 		log.Println("[INFO] Shutting down server gracefully...")
+		cancelWorker()
 		_ = app.ShutdownWithTimeout(5 * time.Second)
 	}()
 
-	// 9. Start Server
+	// 10. Start Server
 	addr := fmt.Sprintf(":%s", cfg.AppPort)
 	log.Printf("[INFO] Server starting on port %s (env: %s)...\n", cfg.AppPort, cfg.AppEnv)
 	log.Printf("[INFO] Swagger documentation available at http://localhost:%s/swagger/\n", cfg.AppPort)

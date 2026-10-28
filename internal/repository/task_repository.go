@@ -10,6 +10,7 @@ import (
 type TaskRepository interface {
 	Create(task *models.Task) error
 	FindByID(id uuid.UUID, userID uuid.UUID) (*models.Task, error)
+	FindByTitleKeyword(userID uuid.UUID, keyword string) (*models.Task, error)
 	FindAllByUserID(userID uuid.UUID, status string, priority string, dueDate string) ([]models.Task, error)
 	Update(task *models.Task) error
 	Delete(id uuid.UUID, userID uuid.UUID) error
@@ -30,6 +31,15 @@ func (r *taskRepository) Create(task *models.Task) error {
 func (r *taskRepository) FindByID(id uuid.UUID, userID uuid.UUID) (*models.Task, error) {
 	var task models.Task
 	if err := r.db.Preload("Reminders").Where("id = ? AND user_id = ?", id, userID).First(&task).Error; err != nil {
+		return nil, err
+	}
+	return &task, nil
+}
+
+func (r *taskRepository) FindByTitleKeyword(userID uuid.UUID, keyword string) (*models.Task, error) {
+	var task models.Task
+	pattern := "%" + keyword + "%"
+	if err := r.db.Preload("Reminders").Where("user_id = ? AND title ILIKE ?", userID, pattern).Order("created_at DESC").First(&task).Error; err != nil {
 		return nil, err
 	}
 	return &task, nil

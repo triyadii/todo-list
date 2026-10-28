@@ -127,12 +127,34 @@ definitions:
       updated_at:
         type: string
     type: object
+  service.ActionLog:
+    properties:
+      data: {}
+      message:
+        type: string
+      status:
+        description: '"success" or "failed"'
+        type: string
+      tool_name:
+        type: string
+    type: object
   service.AuthResponse:
     properties:
       token:
         type: string
       user:
         $ref: '#/definitions/models.User'
+    type: object
+  service.ChatResponse:
+    properties:
+      actions:
+        items:
+          $ref: '#/definitions/service.ActionLog'
+        type: array
+      assistant_message:
+        $ref: '#/definitions/models.ChatMessage'
+      user_message:
+        $ref: '#/definitions/models.ChatMessage'
     type: object
   service.CreateReminderRequest:
     properties:
@@ -239,9 +261,6 @@ definitions:
         type: boolean
     type: object
 host: mdt-solution.site
-schemes:
-- https
-- http
 info:
   contact:
     email: support@todolist.local
@@ -387,8 +406,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Save a chat conversation message for user, assistant, or system
-        to preserve context memory
+      description: Send a chat message to Groq AI Assistant. The AI automatically
+        processes task or reminder actions and replies back.
       parameters:
       - description: Chat Message Data
         in: body
@@ -400,13 +419,13 @@ paths:
       - application/json
       responses:
         "201":
-          description: Message stored successfully
+          description: Message processed with AI successfully
           schema:
             allOf:
             - $ref: '#/definitions/utils.APIResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/models.ChatMessage'
+                  $ref: '#/definitions/service.ChatResponse'
               type: object
         "400":
           description: Bad Request
@@ -418,7 +437,7 @@ paths:
             $ref: '#/definitions/utils.APIResponse'
       security:
       - BearerAuth: []
-      summary: Store a chat message
+      summary: Send message to AI assistant
       tags:
       - Chat & AI
   /api/v1/reminders:
@@ -941,6 +960,9 @@ paths:
       summary: Get user by ID
       tags:
       - User Management
+schemes:
+- https
+- http
 securityDefinitions:
   BearerAuth:
     description: 'Format: "Bearer {token}". Masukkan token JWT yang didapat dari endpoint

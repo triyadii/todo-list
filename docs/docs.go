@@ -201,7 +201,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Save a chat conversation message for user, assistant, or system to preserve context memory",
+                "description": "Send a chat message to Groq AI Assistant. The AI automatically processes task or reminder actions and replies back.",
                 "consumes": [
                     "application/json"
                 ],
@@ -211,7 +211,7 @@ const docTemplate = `{
                 "tags": [
                     "Chat \u0026 AI"
                 ],
-                "summary": "Store a chat message",
+                "summary": "Send message to AI assistant",
                 "parameters": [
                     {
                         "description": "Chat Message Data",
@@ -225,7 +225,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Message stored successfully",
+                        "description": "Message processed with AI successfully",
                         "schema": {
                             "allOf": [
                                 {
@@ -235,7 +235,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.ChatMessage"
+                                            "$ref": "#/definitions/service.ChatResponse"
                                         }
                                     }
                                 }
@@ -1336,6 +1336,22 @@ const docTemplate = `{
                 }
             }
         },
+        "service.ActionLog": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "\"success\" or \"failed\"",
+                    "type": "string"
+                },
+                "tool_name": {
+                    "type": "string"
+                }
+            }
+        },
         "service.AuthResponse": {
             "type": "object",
             "properties": {
@@ -1344,6 +1360,23 @@ const docTemplate = `{
                 },
                 "user": {
                     "$ref": "#/definitions/models.User"
+                }
+            }
+        },
+        "service.ChatResponse": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/service.ActionLog"
+                    }
+                },
+                "assistant_message": {
+                    "$ref": "#/definitions/models.ChatMessage"
+                },
+                "user_message": {
+                    "$ref": "#/definitions/models.ChatMessage"
                 }
             }
         },

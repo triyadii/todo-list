@@ -23,6 +23,8 @@ type Config struct {
 	SwaggerHost     string
 	SwaggerBasePath string
 	SwaggerSchemes  []string
+	GroqAPIKey      string
+	GroqModel       string
 }
 
 var AppConfig *Config
@@ -67,6 +69,8 @@ func LoadConfig() *Config {
 		SwaggerHost:     getEnv("SWAGGER_HOST", ""),
 		SwaggerBasePath: getEnv("SWAGGER_BASE_PATH", "/todo-list"),
 		SwaggerSchemes:  schemes,
+		GroqAPIKey:      getEnv("GROQ_API_KEY", ""),
+		GroqModel:       getEnv("GROQ_MODEL", "openai/gpt-oss-120b"),
 	}
 
 	return AppConfig
