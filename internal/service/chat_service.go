@@ -185,7 +185,20 @@ func (s *chatService) SendMessage(userID uuid.UUID, req *SendMessageRequest) (*C
 		})
 		if err != nil {
 			log.Printf("[WARN] Groq second completion failed: %v", err)
-			assistantReplyText = "Permintaan Anda telah berhasil diproses oleh sistem."
+			hasFailure := false
+			var failMsg string
+			for _, a := range actionsExecuted {
+				if a.Status == "failed" {
+					hasFailure = true
+					failMsg = a.Message
+					break
+				}
+			}
+			if hasFailure {
+				assistantReplyText = fmt.Sprintf("Mohon maaf, permintaan Anda tidak dapat diproses: %s. Silakan ketik 'lihat tugas saya' untuk mengecek daftar tugas Anda atau berikan instruksi yang lebih lengkap.", failMsg)
+			} else {
+				assistantReplyText = "Permintaan Anda telah berhasil diproses oleh sistem."
+			}
 		} else if len(secondCompletion.Choices) > 0 {
 			assistantReplyText = secondCompletion.Choices[0].Message.Content
 		}
@@ -226,7 +239,7 @@ func (s *chatService) executeToolCall(userID uuid.UUID, toolCall groq.ToolCall) 
 			Priority    string  `json:"priority"`
 		}
 		if err := json.Unmarshal([]byte(argsJSON), &args); err != nil {
-			return ActionLog{ToolName: name, Status: "failed", Message: err.Error()}, `{"status":"error","message":"invalid arguments"}`
+			return ActionLog{ToolName: name, Status: "failed", Message: "Format data tugas tidak valid"}, `{"status":"error","message":"Format data tugas tidak valid. Mohon sebutkan judul tugas dan tanggal jatuh tempo dengan jelas."}`
 		}
 
 		// If start_time is provided but end_time is empty, default end_time to +1 hour for calendar/schedule view
@@ -244,7 +257,7 @@ func (s *chatService) executeToolCall(userID uuid.UUID, toolCall groq.ToolCall) 
 			Priority:    models.TaskPriority(args.Priority),
 		})
 		if err != nil {
-			return ActionLog{ToolName: name, Status: "failed", Message: err.Error()}, fmt.Sprintf(`{"status":"error","message":"%s"}`, err.Error())
+			return ActionLog{ToolName: name, Status: "failed", Message: err.Error()}, fmt.Sprintf(`{"status":"error","message":"Gagal membuat tugas: %s. Mohon pastikan judul dan tanggal tugas sudah disebutkan dengan benar."}`, err.Error())
 		}
 
 		// Auto-schedule a reminder if task has a start_time
@@ -281,7 +294,16 @@ func (s *chatService) executeToolCall(userID uuid.UUID, toolCall groq.ToolCall) 
 
 		tasks, err := s.taskService.GetTasks(userID, args.Status, args.Priority, args.DueDate)
 		if err != nil {
-			return ActionLog{ToolName: name, Status: "failed", Message: err.Error()}, fmt.Sprintf(`{"status":"error","message":"%s"}`, err.Error())
+			return ActionLog{ToolName: name, Status: "failed", Message: err.Error()}, fmt.Sprintf(`{"status":"error","message":"Gagal mengambil daftar tugas: %s"}`, err.Error())
+		}
+
+		if len(tasks) == 0 {
+			return ActionLog{
+				ToolName: name,
+				Status:   "success",
+				Message:  "Tidak ada tugas ditemukan",
+				Data:     tasks,
+			}, `{"status":"empty","message":"Tidak ada tugas yang ditemukan untuk kriteria atau tanggal tersebut. Beritahukan pengguna bahwa daftar tugas kosong dan tawarkan bantuan untuk membuat tugas baru dengan contoh perintah."}`
 		}
 
 		resBytes, _ := json.Marshal(tasks)
@@ -305,12 +327,16 @@ func (s *chatService) executeToolCall(userID uuid.UUID, toolCall groq.ToolCall) 
 			Priority    *string `json:"priority"`
 		}
 		if err := json.Unmarshal([]byte(argsJSON), &args); err != nil {
-			return ActionLog{ToolName: name, Status: "failed", Message: err.Error()}, `{"status":"error","message":"invalid arguments"}`
+			return ActionLog{ToolName: name, Status: "failed", Message: "Format data update tidak valid"}, `{"status":"error","message":"Format data pembaruan tugas tidak valid"}`
 		}
 
 		targetTask, err := s.taskService.FindTaskByKeywordOrID(userID, args.TaskID, args.SearchTitle)
 		if err != nil || targetTask == nil {
-			return ActionLog{ToolName: name, Status: "failed", Message: "Tugas tidak ditemukan"}, `{"status":"error","message":"task not found"}`
+			searchQuery := args.SearchTitle
+			if searchQuery == "" {
+				searchQuery = args.TaskID
+			}
+			return ActionLog{ToolName: name, Status: "failed", Message: fmt.Sprintf("Tugas '%s' tidak ditemukan", searchQuery)}, fmt.Sprintf(`{"status":"error","code":"task_not_found","message":"Tugas dengan judul atau kata kunci '%s' tidak ditemukan di daftar tugas. Beritahukan pengguna bahwa tugas tidak ditemukan dan sarankan mengetik 'lihat tugas saya' untuk memastikan nama tugas yang terdaftar."}`, searchQuery)
 		}
 
 		var statusVal *models.TaskStatus
@@ -351,12 +377,16 @@ func (s *chatService) executeToolCall(userID uuid.UUID, toolCall groq.ToolCall) 
 			SearchTitle string `json:"search_title"`
 		}
 		if err := json.Unmarshal([]byte(argsJSON), &args); err != nil {
-			return ActionLog{ToolName: name, Status: "failed", Message: err.Error()}, `{"status":"error","message":"invalid arguments"}`
+			return ActionLog{ToolName: name, Status: "failed", Message: "Format data penghapusan tidak valid"}, `{"status":"error","message":"Format data penghapusan tugas tidak valid"}`
 		}
 
 		targetTask, err := s.taskService.FindTaskByKeywordOrID(userID, args.TaskID, args.SearchTitle)
 		if err != nil || targetTask == nil {
-			return ActionLog{ToolName: name, Status: "failed", Message: "Tugas tidak ditemukan"}, `{"status":"error","message":"task not found"}`
+			searchQuery := args.SearchTitle
+			if searchQuery == "" {
+				searchQuery = args.TaskID
+			}
+			return ActionLog{ToolName: name, Status: "failed", Message: fmt.Sprintf("Tugas '%s' tidak ditemukan", searchQuery)}, fmt.Sprintf(`{"status":"error","code":"task_not_found","message":"Tugas dengan judul atau kata kunci '%s' tidak ditemukan. Jelaskan kepada pengguna bahwa tugas tidak ditemukan dan sarankan mengecek daftar tugas dengan 'lihat tugas saya'."}`, searchQuery)
 		}
 
 		if err := s.taskService.DeleteTask(userID, targetTask.ID); err != nil {
@@ -378,17 +408,21 @@ func (s *chatService) executeToolCall(userID uuid.UUID, toolCall groq.ToolCall) 
 			AIMessage   *string `json:"ai_message"`
 		}
 		if err := json.Unmarshal([]byte(argsJSON), &args); err != nil {
-			return ActionLog{ToolName: name, Status: "failed", Message: err.Error()}, `{"status":"error","message":"invalid arguments"}`
+			return ActionLog{ToolName: name, Status: "failed", Message: "Format pengingat tidak valid"}, `{"status":"error","message":"Format data pengingat tidak valid"}`
 		}
 
 		targetTask, err := s.taskService.FindTaskByKeywordOrID(userID, args.TaskID, args.SearchTitle)
 		if err != nil || targetTask == nil {
-			return ActionLog{ToolName: name, Status: "failed", Message: "Tugas yang ingin diingatkan tidak ditemukan"}, `{"status":"error","message":"task not found"}`
+			searchQuery := args.SearchTitle
+			if searchQuery == "" {
+				searchQuery = args.TaskID
+			}
+			return ActionLog{ToolName: name, Status: "failed", Message: fmt.Sprintf("Tugas '%s' tidak ditemukan untuk dipasangi pengingat", searchQuery)}, fmt.Sprintf(`{"status":"error","code":"task_not_found","message":"Tugas '%s' tidak ditemukan di database. Pengingat hanya bisa dibuat untuk tugas yang sudah ada. Sarankan pengguna membuat tugas terlebih dahulu atau cek daftar tugas dengan 'lihat tugas saya'."}`, searchQuery)
 		}
 
 		remindTime, err := s.parseRemindAt(args.RemindAt)
 		if err != nil {
-			return ActionLog{ToolName: name, Status: "failed", Message: err.Error()}, fmt.Sprintf(`{"status":"error","message":"%s"}`, err.Error())
+			return ActionLog{ToolName: name, Status: "failed", Message: err.Error()}, fmt.Sprintf(`{"status":"error","message":"Format waktu pengingat '%s' tidak dapat dipahami. Beritahukan pengguna format waktu yang benar, misalnya '1 jam lagi', 'besok jam 08:00', atau tanggal dan jam lengkap."}`, args.RemindAt)
 		}
 
 		reminder, err := s.reminderService.CreateReminder(userID, &CreateReminderRequest{
@@ -409,7 +443,7 @@ func (s *chatService) executeToolCall(userID uuid.UUID, toolCall groq.ToolCall) 
 		}, string(resBytes)
 
 	default:
-		return ActionLog{ToolName: name, Status: "failed", Message: "Unknown tool"}, `{"status":"error","message":"unknown tool"}`
+		return ActionLog{ToolName: name, Status: "failed", Message: "Tool tidak dikenal"}, `{"status":"error","message":"Tool tidak dikenal oleh sistem"}`
 	}
 }
 

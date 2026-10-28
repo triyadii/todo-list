@@ -9,11 +9,12 @@ import (
 )
 
 type RouterConfig struct {
-	AuthHandler     *handler.AuthHandler
-	UserHandler     *handler.UserHandler
-	TaskHandler     *handler.TaskHandler
-	ReminderHandler *handler.ReminderHandler
-	ChatHandler     *handler.ChatHandler
+	AuthHandler         *handler.AuthHandler
+	UserHandler         *handler.UserHandler
+	TaskHandler         *handler.TaskHandler
+	ReminderHandler     *handler.ReminderHandler
+	ChatHandler         *handler.ChatHandler
+	NotificationHandler *handler.NotificationHandler
 }
 
 func SetupRoutes(app *fiber.App, cfg *RouterConfig) {
@@ -83,4 +84,13 @@ func SetupRoutes(app *fiber.App, cfg *RouterConfig) {
 	chat.Post("/messages", cfg.ChatHandler.SendMessage)
 	chat.Get("/messages", cfg.ChatHandler.GetHistory)
 	chat.Delete("/messages", cfg.ChatHandler.ClearHistory)
+
+	// Notifications & FCM
+	if cfg.NotificationHandler != nil {
+		notifications := protected.Group("/notifications")
+		notifications.Post("/send", cfg.NotificationHandler.SendToToken)
+		notifications.Post("/send-to-user", cfg.NotificationHandler.SendToUser)
+		notifications.Post("/broadcast", cfg.NotificationHandler.SendBroadcast)
+		notifications.Post("/fcm-token", cfg.NotificationHandler.UpdateFCMToken)
+	}
 }

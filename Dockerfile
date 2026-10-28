@@ -31,9 +31,10 @@ RUN apk add --no-cache ca-certificates tzdata
 # Set default timezone
 ENV TZ=Asia/Jakarta
 
-# Copy executable binary and swagger docs from builder stage
+# Copy executable binary, swagger docs, and config from builder stage
 COPY --from=builder /app/bin/todolist-api /app/todolist-api
 COPY --from=builder /app/docs /app/docs
+COPY --from=builder /app/config /app/config
 
 # Expose API application port
 EXPOSE 8080

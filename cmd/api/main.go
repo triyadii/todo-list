@@ -16,6 +16,7 @@ import (
 	"todo-backend/internal/routes"
 	"todo-backend/internal/service"
 	"todo-backend/internal/worker"
+	"todo-backend/pkg/fcm"
 	"todo-backend/pkg/groq"
 
 	"github.com/gofiber/fiber/v2"
@@ -64,11 +65,24 @@ func main() {
 	reminderRepo := repository.NewReminderRepository(db)
 	chatRepo := repository.NewChatRepository(db)
 
+	// Initialize FCM Push Notification Client
+	var fcmClient *fcm.Client
+	if cfg.FirebaseCredPath != "" {
+		client, err := fcm.NewClient(cfg.FirebaseCredPath)
+		if err != nil {
+			log.Printf("[WARN] Failed to initialize Firebase Cloud Messaging (FCM): %v", err)
+		} else {
+			fcmClient = client
+			log.Printf("[INFO] Firebase Cloud Messaging (FCM) initialized successfully for project: '%s'", fcmClient.GetProjectID())
+		}
+	}
+
 	// 4. Initialize Services
 	authSvc := service.NewAuthService(userRepo)
 	userSvc := service.NewUserService(userRepo)
 	taskSvc := service.NewTaskService(taskRepo)
 	reminderSvc := service.NewReminderService(reminderRepo, taskRepo)
+	notificationSvc := service.NewNotificationService(userRepo, fcmClient)
 	groqClient := groq.NewClient(cfg.GroqAPIKey, cfg.GroqModel)
 	chatSvc := service.NewChatService(chatRepo, taskSvc, reminderSvc, groqClient, cfg.DBTimezone)
 
@@ -77,6 +91,7 @@ func main() {
 	userHandler := handler.NewUserHandler(userSvc)
 	taskHandler := handler.NewTaskHandler(taskSvc)
 	reminderHandler := handler.NewReminderHandler(reminderSvc)
+	notificationHandler := handler.NewNotificationHandler(notificationSvc)
 	chatHandler := handler.NewChatHandler(chatSvc)
 
 	// 6. Initialize Fiber App
@@ -110,16 +125,17 @@ func main() {
 
 	// 7. Register Routes
 	routes.SetupRoutes(app, &routes.RouterConfig{
-		AuthHandler:     authHandler,
-		UserHandler:     userHandler,
-		TaskHandler:     taskHandler,
-		ReminderHandler: reminderHandler,
-		ChatHandler:     chatHandler,
+		AuthHandler:         authHandler,
+		UserHandler:         userHandler,
+		TaskHandler:         taskHandler,
+		ReminderHandler:     reminderHandler,
+		ChatHandler:         chatHandler,
+		NotificationHandler: notificationHandler,
 	})
 
 	// 8. Start Background Reminder Worker Goroutine
 	workerCtx, cancelWorker := context.WithCancel(context.Background())
-	reminderWorker := worker.NewReminderWorker(reminderSvc, 15*time.Second)
+	reminderWorker := worker.NewReminderWorker(reminderSvc, fcmClient, 15*time.Second)
 	go reminderWorker.Start(workerCtx)
 
 	// 9. Graceful Shutdown listener

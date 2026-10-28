@@ -15,6 +15,7 @@ type UserRepository interface {
 	Update(user *models.User) error
 	UpdateFCMToken(id uuid.UUID, fcmToken string) error
 	UpdateTimezone(id uuid.UUID, timezone string) error
+	FindAllWithFCMToken() ([]models.User, error)
 	Delete(id uuid.UUID) error
 }
 
@@ -64,6 +65,14 @@ func (r *userRepository) UpdateFCMToken(id uuid.UUID, fcmToken string) error {
 
 func (r *userRepository) UpdateTimezone(id uuid.UUID, timezone string) error {
 	return r.db.Model(&models.User{}).Where("id = ?", id).Update("timezone", timezone).Error
+}
+
+func (r *userRepository) FindAllWithFCMToken() ([]models.User, error) {
+	var users []models.User
+	if err := r.db.Where("fcm_token IS NOT NULL AND fcm_token != ''").Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
 }
 
 func (r *userRepository) Delete(id uuid.UUID) error {

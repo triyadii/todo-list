@@ -2,23 +2,27 @@ package worker
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
 	"todo-backend/internal/service"
+	"todo-backend/pkg/fcm"
 )
 
 type ReminderWorker struct {
 	reminderService service.ReminderService
+	fcmClient       *fcm.Client
 	interval        time.Duration
 }
 
-func NewReminderWorker(reminderService service.ReminderService, interval time.Duration) *ReminderWorker {
+func NewReminderWorker(reminderService service.ReminderService, fcmClient *fcm.Client, interval time.Duration) *ReminderWorker {
 	if interval <= 0 {
 		interval = 15 * time.Second
 	}
 	return &ReminderWorker{
 		reminderService: reminderService,
+		fcmClient:       fcmClient,
 		interval:        interval,
 	}
 }
@@ -79,8 +83,29 @@ func (w *ReminderWorker) checkReminders(now time.Time) {
 		log.Printf("[INFO] [REMINDER TRIGGERED] ⏰ Task: '%s' | User: %s (%s) | RemindAt: %s | Note: %s",
 			taskTitle, userName, userEmail, r.RemindAt.Format("15:04:05"), aiNote)
 
-		if fcmToken != nil && *fcmToken != "" {
+		if w.fcmClient != nil && fcmToken != nil && *fcmToken != "" {
 			log.Printf("[INFO] [REMINDER WORKER] Sending Push Notification to FCM Token: %s...", *fcmToken)
+			body := fmt.Sprintf("Waktunya mengerjakan tugas '%s'", taskTitle)
+			if aiNote != "" {
+				body = aiNote
+			}
+			fcmPayload := &fcm.NotificationPayload{
+				Title: fmt.Sprintf("⏰ Pengingat: %s", taskTitle),
+				Body:  body,
+				Data: map[string]string{
+					"type":        "reminder",
+					"task_id":     r.TaskID.String(),
+					"reminder_id": r.ID.String(),
+					"remind_at":   r.RemindAt.Format(time.RFC3339),
+				},
+			}
+			go func(tok string, payload *fcm.NotificationPayload) {
+				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+				defer cancel()
+				if _, err := w.fcmClient.Send(ctx, tok, payload); err != nil {
+					log.Printf("[WARN] [REMINDER WORKER] Failed to deliver FCM notification: %v", err)
+				}
+			}(*fcmToken, fcmPayload)
 		}
 
 		// Mark reminder as sent so it won't be processed again

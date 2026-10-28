@@ -37,6 +37,7 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	FCMToken string `json:"fcm_token"`
 }
 
 type UpdateProfileRequest struct {
@@ -115,6 +116,22 @@ func (s *authService) Login(req *LoginRequest) (*AuthResponse, error) {
 
 	if !utils.CheckPassword(req.Password, user.PasswordHash) {
 		return nil, errors.New("invalid email or password")
+	}
+
+	// Validasi & pengecekan FCM Token perangkat
+	if req.FCMToken == "" {
+		return nil, errors.New("fcm_token perangkat wajib disertakan saat login")
+	}
+
+	if user.FCMToken == nil || *user.FCMToken == "" {
+		// Jika FCM Token di database masih kosong, daftarkan FCM Token dari mobile
+		if err := s.userRepo.UpdateFCMToken(user.ID, req.FCMToken); err != nil {
+			return nil, errors.New("gagal menyimpan fcm_token perangkat")
+		}
+		user.FCMToken = &req.FCMToken
+	} else if *user.FCMToken != req.FCMToken {
+		// Jika FCM Token di database sudah ada dan berbeda dengan perangkat yang mencoba login
+		return nil, errors.New("login gagal: akun Anda terdaftar pada perangkat lain. Anda hanya dapat login menggunakan perangkat yang telah terdaftar")
 	}
 
 	token, err := utils.GenerateToken(user.ID, user.Email, user.Timezone)

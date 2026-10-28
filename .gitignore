@@ -15,3 +15,4 @@ build-errors.log
 .DS_Store
 .idea/
 .vscode/
+config/firebase-service-account.json

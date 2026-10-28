@@ -1,5 +1,76 @@
 basePath: /todo-list
 definitions:
+  fcm.SendResult:
+    properties:
+      error:
+        type: string
+      message_id:
+        type: string
+      success:
+        type: boolean
+      token:
+        type: string
+    type: object
+  service.SendBroadcastRequest:
+    properties:
+      body:
+        type: string
+      data:
+        additionalProperties:
+          type: string
+        type: object
+      image:
+        type: string
+      title:
+        type: string
+    required:
+    - body
+    - title
+    type: object
+  service.SendToTokenRequest:
+    properties:
+      body:
+        type: string
+      data:
+        additionalProperties:
+          type: string
+        type: object
+      image:
+        type: string
+      title:
+        type: string
+      token:
+        type: string
+    required:
+    - body
+    - title
+    - token
+    type: object
+  service.SendToUserRequest:
+    properties:
+      body:
+        type: string
+      data:
+        additionalProperties:
+          type: string
+        type: object
+      image:
+        type: string
+      title:
+        type: string
+      user_id:
+        type: string
+    required:
+    - body
+    - title
+    type: object
+  service.UpdateFCMTokenRequest:
+    properties:
+      fcm_token:
+        type: string
+    required:
+    - fcm_token
+    type: object
   models.ChatMessage:
     properties:
       content:
@@ -202,8 +273,15 @@ definitions:
     properties:
       email:
         type: string
+      fcm_token:
+        description: FCM device token from mobile device
+        type: string
       password:
         type: string
+    required:
+    - email
+    - fcm_token
+    - password
     type: object
   service.RegisterRequest:
     properties:
@@ -274,6 +352,163 @@ info:
   title: TodoList Backend AI Assistant API
   version: "1.0"
 paths:
+  /api/v1/notifications/send:
+    post:
+      consumes:
+      - application/json
+      description: Deliver push notification to a device token using Firebase Cloud Messaging (FCM HTTP v1)
+      parameters:
+      - description: Push Notification Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.SendToTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Notification sent successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/fcm.SendResult'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Send push notification to specific FCM token
+      tags:
+      - Notifications & FCM
+  /api/v1/notifications/send-to-user:
+    post:
+      consumes:
+      - application/json
+      description: Send push notification to a user's registered FCM token. If user_id is omitted, notification goes to the current authenticated user.
+      parameters:
+      - description: Send To User Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.SendToUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Notification sent to user successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/fcm.SendResult'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "404":
+          description: User not found or no FCM token registered
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Send push notification to user
+      tags:
+      - Notifications & FCM
+  /api/v1/notifications/broadcast:
+    post:
+      consumes:
+      - application/json
+      description: Send push notification to all users with active registered FCM tokens
+      parameters:
+      - description: Broadcast Notification Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.SendBroadcastRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Broadcast sent successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/fcm.SendResult'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Broadcast push notification to all users
+      tags:
+      - Notifications & FCM
+  /api/v1/notifications/fcm-token:
+    post:
+      consumes:
+      - application/json
+      description: Store or refresh the Firebase Cloud Messaging device token for push notifications
+      parameters:
+      - description: FCM Token Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateFCMTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: FCM token updated successfully
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update current user's FCM token
+      tags:
+      - Notifications & FCM
   /api/v1/auth/login:
     post:
       consumes:

@@ -22,9 +22,10 @@ type Config struct {
 	JWTExpireHr     string
 	SwaggerHost     string
 	SwaggerBasePath string
-	SwaggerSchemes  []string
-	GroqAPIKey      string
-	GroqModel       string
+	SwaggerSchemes   []string
+	GroqAPIKey       string
+	GroqModel        string
+	FirebaseCredPath string
 }
 
 var AppConfig *Config
@@ -55,22 +56,23 @@ func LoadConfig() *Config {
 	}
 
 	AppConfig = &Config{
-		AppPort:         getEnv("APP_PORT", "8080"),
-		AppEnv:          getEnv("APP_ENV", "development"),
-		DBHost:          getEnv("DB_HOST", "localhost"),
-		DBPort:          getEnv("DB_PORT", "5432"),
-		DBUser:          getEnv("DB_USER", "postgres"),
-		DBPassword:      getEnv("DB_PASSWORD", "postgres"),
-		DBName:          getEnv("DB_NAME", "todolist_db"),
-		DBSSLMode:       getEnv("DB_SSLMODE", "disable"),
-		DBTimezone:      getEnv("DB_TIMEZONE", "Asia/Jakarta"),
-		JWTSecret:       getEnv("JWT_SECRET", "super-secret-todolist-jwt-key"),
-		JWTExpireHr:     getEnv("JWT_EXPIRE_HOURS", "72"),
-		SwaggerHost:     getEnv("SWAGGER_HOST", ""),
-		SwaggerBasePath: getEnv("SWAGGER_BASE_PATH", "/todo-list"),
-		SwaggerSchemes:  schemes,
-		GroqAPIKey:      getEnv("GROQ_API_KEY", ""),
-		GroqModel:       getEnv("GROQ_MODEL", "openai/gpt-oss-120b"),
+		AppPort:          getEnv("APP_PORT", "8080"),
+		AppEnv:           getEnv("APP_ENV", "development"),
+		DBHost:           getEnv("DB_HOST", "localhost"),
+		DBPort:           getEnv("DB_PORT", "5432"),
+		DBUser:           getEnv("DB_USER", "postgres"),
+		DBPassword:       getEnv("DB_PASSWORD", "postgres"),
+		DBName:           getEnv("DB_NAME", "todolist_db"),
+		DBSSLMode:        getEnv("DB_SSLMODE", "disable"),
+		DBTimezone:       getEnv("DB_TIMEZONE", "Asia/Jakarta"),
+		JWTSecret:        getEnv("JWT_SECRET", "super-secret-todolist-jwt-key"),
+		JWTExpireHr:      getEnv("JWT_EXPIRE_HOURS", "72"),
+		SwaggerHost:      getEnv("SWAGGER_HOST", ""),
+		SwaggerBasePath:  getEnv("SWAGGER_BASE_PATH", "/todo-list"),
+		SwaggerSchemes:   schemes,
+		GroqAPIKey:       getEnv("GROQ_API_KEY", ""),
+		GroqModel:        getEnv("GROQ_MODEL", "openai/gpt-oss-120b"),
+		FirebaseCredPath: getEnv("FIREBASE_CREDENTIALS_PATH", "config/firebase-service-account.json"),
 	}
 
 	return AppConfig

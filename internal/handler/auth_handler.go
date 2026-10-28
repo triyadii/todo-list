@@ -42,14 +42,14 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 
 // Login godoc
 // @Summary      Login user
-// @Description  Authenticate user with email and password, returning JWT token
+// @Description  Authenticate user with email, password, and FCM device token. Verifies device token to enforce single-device authorization.
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        request body service.LoginRequest true "Login Credentials"
+// @Param        request body service.LoginRequest true "Login Credentials with FCM Token"
 // @Success      200  {object}  utils.APIResponse{data=service.AuthResponse} "Login successful"
 // @Failure      400  {object}  utils.APIResponse "Invalid request"
-// @Failure      401  {object}  utils.APIResponse "Invalid email or password"
+// @Failure      401  {object}  utils.APIResponse "Invalid email, password, or device mismatch"
 // @Router       /api/v1/auth/login [post]
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	var req service.LoginRequest
